@@ -50,13 +50,17 @@ data <- data[,-1]
 data <- data[order(data$arrivalTimestamp),]
 data$timediff <- c(Inf, diff(data$arrivalTimestamp))
 
-#filtra apenas as chegadas occoridas entre 18:00:00 e 18:59:59
-data <- data[format(data$arrivalTimestamp, "%H")=="18", ]
-
 #filtra apenas os registros com tempo de servico válido
 data <- data[!is.na(data$servDuration), ]
 
-write.csv(data, file="data18.csv", row.names = F)
+#filtra apenas as chegadas occoridas entre 18:00:00 e 18:59:59
+data18 <- data[format(data$arrivalTimestamp, "%H")=="18", ]
+write.csv(data18, file="data18.csv", row.names = F)
+
+#filtra apenas as chegadas occoridas entre 17:00:00 e 18:59:59
+data1718 <- data[format(data$arrivalTimestamp, "%H")%in% c("17", "18"), ]
+write.csv(data1718, file="data1718.csv", row.names = F)
+
 ```
 
 ##Distribuição de chegada 
