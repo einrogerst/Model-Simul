@@ -1,0 +1,198 @@
+---
+title: "Análise da fila de atendimento (restrita ao horário de pico)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(plyr)
+library(ggplot2)
+library(VGAM)
+require(scales)
+setwd("C:\\Users\\i826950\\Desktop\\Personal\\Unisinos\\model&simul")
+```
+
+##Carga e Transformação
+
+```{r ETL}
+#le dados de entrada
+data <- read.csv("data.csv", stringsAsFactors = F, sep = ";")
+#data <- head(data, 10)
+#nrow(data)
+
+#transforma data/hora de entrada em timestamp 
+data$arrivalTimestamp <- as.POSIXct(strptime(with(data, paste(Data, Hora.Chegada)), "%Y/%m/%d %H:%M:%S"))
+data$servStartTimestamp <- as.POSIXct(strptime(with(data, paste(Data, Hora.Chamada)), "%Y/%m/%d %H:%M:%S"))
+
+#calcula o turno
+data$turno <- as.factor(floor(as.numeric(format(data$arrivalTimestamp, "%H"))/6))
+
+#transforma Guiche em variavel categórica
+data$Guiche <- as.factor(data$Guiche)
+
+#extrai tipo de atendimento
+data$Tipo <- as.factor(
+  substr(data$Chamada, 1, attr(regexpr("^[A-Z]{1,2}", data$Chamada), "match.length")))
+# table(data$Tipo)
+# midpoints <- barplot(as.data.frame(table(data$Tipo))$Freq,
+#         names.arg=as.data.frame(table(data$Tipo))$Var1)
+# text(midpoints, 200, labels=as.data.frame(table(data$Tipo))$Freq)
+
+#calcula o tempo na fila
+data$waitingTime <- data$servStartTimestamp - data$arrivalTimestamp
+
+#calcula o tempo de atendimento
+data <- data[with(data, order(Guiche, servStartTimestamp)), ]
+data <- ddply(data, .(format(servStartTimestamp, "%Y/%m/%d"), Guiche), mutate, servDuration = c(as.numeric(diff(servStartTimestamp), units = "secs"), NA))
+data <- data[,-1]
+
+#ordena por hora de chegada para cálculo da diferença de chegada
+data <- data[order(data$arrivalTimestamp),]
+data$timediff <- c(Inf, diff(data$arrivalTimestamp))
+
+#filtra apenas as chegadas occoridas entre 18:00:00 e 18:59:59
+data <- data[format(data$arrivalTimestamp, "%H")=="18", ]
+
+#filtra apenas os registros com tempo de servico válido
+data <- data[!is.na(data$servDuration), ]
+
+write.csv(data, file="data18.csv", row.names = F)
+```
+
+##Distribuição de chegada 
+```{r dist_chegada}
+
+write.csv(data[,"timediff"], file="distCheg18.csv")
+
+chegadas1 <- 
+  ggplot(data, aes(timediff, colour = format(arrivalTimestamp, "%H"))) +
+  geom_freqpoly(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 
+  xlim(0, 600) +
+  ylab("Frequência Percentual") +
+  xlab("Intervalo em segundos") +
+  labs(colour = "Hora") + 
+  scale_y_continuous(labels = percent_format())
+ggsave(filename = "chegadas1.png", plot = chegadas1)
+
+write.csv(data[,"timediff"], file="chegadasFiltro18.csv")
+
+chegadas2 <- ggplot(data, aes(timediff)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 
+  #geom_freqpoly(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 
+  xlim(0, 600) +
+  ylab("Frequência Percentual") +
+  xlab("Intervalo em segundos") +
+  scale_y_continuous(labels = percent_format())
+ggsave(filename = "chegadas2.png", plot = chegadas2)
+
+#cria um arquivo com 5000 amostras para ajuste de curva no easyFit
+write.csv(sample(data[,"timediff"], 5000), file="chegadas_geral.csv")
+
+#-> para os dados gerais, EasyFit retornou Fatigue Life (Birnbaum-Saunders) Distribution com shape=1.9434 e scale=50.405
+test <- rbisa(10000, scale=50.405, shape=1.9434)
+ggplot(data.frame(test), aes(test)) +
+  geom_freqpoly(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 
+  xlim(0, 600) +
+  ylab("Frequência Percentual") +
+  xlab("Duração em segundos") +
+  scale_y_continuous(labels = percent_format())
+```
+
+##Sumarização e visualização
+
+#Chegadas por hora
+```{r sumarizacao}
+#sumarização de chegadas por hora
+chegadas.hora.dia <- ddply(data, .(hora=format(arrivalTimestamp, "%H"), dia=format(arrivalTimestamp, "%d-%m-%Y")), summarize, meanTimeDiff=mean(timediff), freq=length(timediff))
+chegadas.hora.dia.medio <- ddply(chegadas.hora.dia, .(hora), summarize, mediaDiff=mean(meanTimeDiff), numDias=length(meanTimeDiff), mediaAtendDia=mean(freq) , ttAtend=sum(freq))
+
+#visualiza quantidade de chegadas por hora
+chegadas3 <- 
+  ggplot(chegadas.hora.dia.medio, aes(x=factor(hora), y=mediaAtendDia)) + 
+  geom_bar(stat = "identity") + 
+  ylab("Quantidade de média novos clientes") +
+  xlab("Horas do dia")
+ggsave(filename = "chegadas3.png", plot = chegadas3)
+
+#visualiza intervalo medio de chegada por hora
+chegadas4 <- 
+  ggplot(chegadas.hora.dia.medio, aes(x=factor(hora), y=as.POSIXct(mediaDiff, origin = "1970-01-01", tz="UTC"))) +
+  geom_bar(stat = "identity") + 
+  ylab("Intervalo médio entre chegadas (hh:mm:ss)") +
+  xlab("Horas do dia") +
+  scale_y_datetime(labels = date_format("%H:%M:%S"))
+ggsave(filename = "chegadas4.png", plot = chegadas4)
+```
+
+```{r tempo_espera_fila}
+quantile(floor(data$waitingTime/60), probs = seq(0, 1, 0.1), na.rm = T)
+
+#percentual de registros com tempo de espera < 1min
+sum(data$waitingTime<=60, na.rm = T)/sum(!is.na(data$waitingTime))*100
+
+#percentual de registros com tempo de espera < 30min
+sum(data$waitingTime<=60*30, na.rm = T)/sum(!is.na(data$waitingTime))*100
+
+#indica atendimentos imediatos
+data$atendImediato <- data$waitingTime <= 60
+
+tempo_fila_1 <- 
+  ggplot(data[!data$atendImediato,], aes(floor(waitingTime/60))) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 1, boundary = 1) + 
+  xlim(0, 60) +
+  ylab("Frequência Percentual") +
+  xlab("Duração em minutos") +
+  scale_y_continuous(labels = percent_format())
+ggsave(filename = "tempo_fila_1.png", plot = tempo_fila_1)
+```
+
+```{r duracao_atendimento}
+#atendimentos sem duração informada e com duração menor que 1min
+#hist(data[data$servDuration < 60, "servDuration"])
+#sum(data$servDuration < 60, na.rm = T)
+
+#data$validServTime <- TRUE
+sum(data$servDuration > 7200, na.rm = T)
+nrow(data)-sum(!is.na(data$servDuration))
+data$validServTime <- 
+  with(data, !is.na(servDuration) 
+       #& servDuration >= 60 # opcionalmente  excluios atendimentos menores que 1 min (desistência?)
+       & servDuration < 7200)
+sum(data$validServTime)
+
+#quantis da duracao
+quantile(data[data$validServTime, "servDuration"], probs = seq(from=0.1, to=1, by=0.1), na.rm = T)
+
+duracao_atend <-
+  ggplot(data[data$validServTime, ], aes(floor(servDuration/60))) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 1) + 
+  xlim(0, 60) +
+  ylab("Frequência Percentual") +
+  xlab("Duração em minutos") +
+  scale_y_continuous(labels = percent_format(), limits = c(0,0.1))
+ggsave(filename = "duracao_atend.png", plot = duracao_atend)
+
+write.csv(sample(data[data$validServTime, "servDuration"], 5000), file="duracao_atend.csv")
+
+#Weibull (data without atend < 60)
+#test <- floor(rweibull(10000, 0.85283, scale=705.25) + 60)
+
+#Log normal (data without atend < 60)
+#test <- floor(rlnorm(10000, meanlog=6.0411, sdlog=1.1442) + 41.277)
+
+#Dagum ("all" data)
+test <- floor(rdagum(10000, scale = 818.72, shape1.a=0.39952, shape2.p=1.8476))
+
+#Weibull ("all" data)
+test <- floor(rweibull(10000, shape=0.8045, scale=570.75))
+
+ggplot(data.frame(test), aes(test)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 60) + 
+  xlim(0, 7200) +
+  ylab("Frequência Percentual") +
+  xlab("Duração em segundos") +
+  scale_y_continuous(labels = percent_format())
+
+citation(package = "base", lib.loc = NULL)
+```
+
