@@ -53,6 +53,13 @@ data$timediff <- c(Inf, diff(data$arrivalTimestamp))
 #filtra apenas os registros com tempo de servico válido
 data <- data[!is.na(data$servDuration), ]
 
+#todos os dados transformados 
+write.csv(data, file="dataFull.csv", row.names = F)
+
+#filtra apenas as chegadas occoridas após as 16h
+dataNoite <- data[as.numeric(format(data$arrivalTimestamp, "%H"))>=16, ]
+write.csv(dataNoite, file="dataNoite.csv", row.names = F)
+
 #filtra apenas as chegadas occoridas entre 18:00:00 e 18:59:59
 data18 <- data[format(data$arrivalTimestamp, "%H")=="18", ]
 write.csv(data18, file="data18.csv", row.names = F)
@@ -60,6 +67,10 @@ write.csv(data18, file="data18.csv", row.names = F)
 #filtra apenas as chegadas occoridas entre 17:00:00 e 18:59:59
 data1718 <- data[format(data$arrivalTimestamp, "%H")%in% c("17", "18"), ]
 write.csv(data1718, file="data1718.csv", row.names = F)
+
+#filtra apenas as chegadas occoridas entre 17:00:00 e 20:59:59
+data1720 <- data[format(data$arrivalTimestamp, "%H")%in% c("17", "18", "19", "20"), ]
+write.csv(data1720, file="data1720.csv", row.names = F)
 
 ```
 

@@ -1,9 +1,6 @@
 #simulador para fila única e n servos
 options(stringsAsFactors = FALSE)
 
-#state variables
-simClock <- 0
-
 queue <- 
   data.frame(
     clientNum <- numeric(),
@@ -12,30 +9,33 @@ queue <-
     stringsAsFactors = F
   )
 
-#statistics
+data <- read.csv(file="dataNoite.csv", stringsAsFactors = F)
+data$arrivalTimestamp <- as.POSIXct(data$arrivalTimestamp)
+data$servStartTimestamp <- as.POSIXct(data$servStartTimestamp)
+
+#state variables
+clientNum <- 1
+timeNextArrival <- data[clientNum, "arrivalTimestamp"]
+timeNextDeparture <- Inf # just to make shure the first event is an arrival
+simClock <- timeNextArrival - 1
 numCustServed <- 0
+
+#statistics
 delaysTotal <- 0
 delay <- 0
 areaQ <- 0
 areaB <- 0
-
-data <- read.csv(file="data1718.csv", stringsAsFactors = F)
-data$arrivalTimestamp <- as.POSIXct(data$arrivalTimestamp)
-data$servStartTimestamp <- as.POSIXct(data$servStartTimestamp)
-
-clientNum <- 1
-timeNextArrival <- data[clientNum, "arrivalTimestamp"]
-timeNextDeparture <- Inf # just to make shure the first event is an arrival
+numDelayedCustomers <- 0
 
 #stop criteria (number of served customers)
-reqCustServed <- 500 
+reqCustServed <- nrow(data)
 
 update <- function(curTime, event){
   timeLast <<- simClock
   simClock <<- curTime
   diffTime <- as.numeric(curTime) - as.numeric(timeLast)
   areaQ <<- areaQ + nrow(queue) * diffTime
-  areaB <<- if(allServersBusy()) areaB + diffTime else areaB
+  areaB <<- areaB + diffTime * sum(servers$busy)
 }
 
 logDF <- data.frame()
@@ -46,13 +46,14 @@ log <- function(event, clientNum, chamada){
                              clientNum=clientNum,
                              chamada=chamada,
                              busyServers=sum(servers$busy), 
-                             queue=nrow(queue)
-                             #instantAvgQ=delaysTotal/numCustServed,
-                             #cumQ = areaQ, 
-                             #cumB = areaB
+                             queueSize=nrow(queue),
+                             numDelayed = numDelayedCustomers,
+                             cumQ = areaQ, 
+                             cumB = areaB
                              ))
 }
-
+-6.779715e-05
+areaB/(as.numeric(simClock-as.numeric(data[1, "arrivalTimestamp"]))*9)
 numServers <- 9
 servers <- 
   data.frame(
@@ -94,6 +95,7 @@ while(numCustServed < reqCustServed){
     arrivingClient <- clientNum
     chamada <- data[arrivingClient, "Chamada"]
     if(allServersBusy()){
+      numDelayedCustomers <- numDelayedCustomers + 1
       if(substr(chamada, 2, 2)=="P"){
         #customer goes to start of the queue
         queue <- rbind(data.frame(clientNum=arrivingClient, 
@@ -133,4 +135,15 @@ while(numCustServed < reqCustServed){
   }
 }
 
-write.csv()
+logDF[which.max(logDF$queue), ]
+
+#utilization
+areaB/((simClock-as.numeric(data[1, "arrivalTimestamp"]))*numServers)
+# >>> this is wrong as the servers are actually not available 24/7
+
+write.csv(logDF, file = "log.csv", row.names = FALSE)
+
+library(ggplot2)
+ggplot() + geom_step(data=logDF, mapping=aes(x=time, y=queueSize))
+
+
