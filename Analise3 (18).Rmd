@@ -1,5 +1,5 @@
 ---
-title: "Análise da fila de atendimento (restrita ao horário de pico)"
+title: "Análise da fila de atendimento (restrita ao horário de pico 18h)"
 output: pdf_document
 ---
 
@@ -9,7 +9,6 @@ library(plyr)
 library(ggplot2)
 library(VGAM)
 require(scales)
-setwd("C:\\Users\\i826950\\Desktop\\Personal\\Unisinos\\model&simul")
 ```
 
 ##Carga e Transformação
@@ -26,6 +25,8 @@ data$servStartTimestamp <- as.POSIXct(strptime(with(data, paste(Data, Hora.Chama
 
 #calcula o turno
 data$turno <- as.factor(floor(as.numeric(format(data$arrivalTimestamp, "%H"))/6))
+
+data$prefer <- substr(data$Chamada, 2, 2)=="P"
 
 #transforma Guiche em variavel categórica
 data$Guiche <- as.factor(data$Guiche)
@@ -54,31 +55,17 @@ data$timediff <- c(Inf, diff(data$arrivalTimestamp))
 data <- data[!is.na(data$servDuration), ]
 
 #todos os dados transformados 
-write.csv(data, file="dataFull.csv", row.names = F)
-
-#filtra apenas as chegadas occoridas após as 16h
-dataNoite <- data[as.numeric(format(data$arrivalTimestamp, "%H"))>=16, ]
-write.csv(dataNoite, file="dataNoite.csv", row.names = F)
+#write.csv(data, file="dataFull.csv", row.names = F)
 
 #filtra apenas as chegadas occoridas entre 18:00:00 e 18:59:59
-data18 <- data[format(data$arrivalTimestamp, "%H")=="18", ]
-write.csv(data18, file="data18.csv", row.names = F)
-
-#filtra apenas as chegadas occoridas entre 17:00:00 e 18:59:59
-data1718 <- data[format(data$arrivalTimestamp, "%H")%in% c("17", "18"), ]
-write.csv(data1718, file="data1718.csv", row.names = F)
-
-#filtra apenas as chegadas occoridas entre 17:00:00 e 20:59:59
-data1720 <- data[format(data$arrivalTimestamp, "%H")%in% c("17", "18", "19", "20"), ]
-write.csv(data1720, file="data1720.csv", row.names = F)
-
+data <- data[format(data$arrivalTimestamp, "%H")=="18", ]
+write.csv(data, file="data18.csv", row.names = F)
 ```
+
+Percentual de atendimentos preferenciais: `r sum(data$prefer)/nrow(data)`
 
 ##Distribuição de chegada 
 ```{r dist_chegada}
-
-write.csv(data[,"timediff"], file="distCheg18.csv")
-
 chegadas1 <- 
   ggplot(data, aes(timediff, colour = format(arrivalTimestamp, "%H"))) +
   geom_freqpoly(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 
@@ -87,10 +74,9 @@ chegadas1 <-
   xlab("Intervalo em segundos") +
   labs(colour = "Hora") + 
   scale_y_continuous(labels = percent_format())
-ggsave(filename = "chegadas1.png", plot = chegadas1)
+ggsave(filename = "chegadas118.png", plot = chegadas1)
 
 write.csv(data[,"timediff"], file="chegadasFiltro18.csv")
-
 chegadas2 <- ggplot(data, aes(timediff)) +
   geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 
   #geom_freqpoly(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 
@@ -98,10 +84,7 @@ chegadas2 <- ggplot(data, aes(timediff)) +
   ylab("Frequência Percentual") +
   xlab("Intervalo em segundos") +
   scale_y_continuous(labels = percent_format())
-ggsave(filename = "chegadas2.png", plot = chegadas2)
-
-#cria um arquivo com 5000 amostras para ajuste de curva no easyFit
-write.csv(sample(data[,"timediff"], 5000), file="chegadas_geral.csv")
+ggsave(filename = "chegadas218.png", plot = chegadas2)
 
 #-> para os dados gerais, EasyFit retornou Fatigue Life (Birnbaum-Saunders) Distribution com shape=1.9434 e scale=50.405
 test <- rbisa(10000, scale=50.405, shape=1.9434)
@@ -127,7 +110,7 @@ chegadas3 <-
   geom_bar(stat = "identity") + 
   ylab("Quantidade de média novos clientes") +
   xlab("Horas do dia")
-ggsave(filename = "chegadas3.png", plot = chegadas3)
+ggsave(filename = "chegadas318.png", plot = chegadas3)
 
 #visualiza intervalo medio de chegada por hora
 chegadas4 <- 
@@ -136,7 +119,7 @@ chegadas4 <-
   ylab("Intervalo médio entre chegadas (hh:mm:ss)") +
   xlab("Horas do dia") +
   scale_y_datetime(labels = date_format("%H:%M:%S"))
-ggsave(filename = "chegadas4.png", plot = chegadas4)
+ggsave(filename = "chegadas418.png", plot = chegadas4)
 ```
 
 ```{r tempo_espera_fila}
@@ -158,7 +141,7 @@ tempo_fila_1 <-
   ylab("Frequência Percentual") +
   xlab("Duração em minutos") +
   scale_y_continuous(labels = percent_format())
-ggsave(filename = "tempo_fila_1.png", plot = tempo_fila_1)
+ggsave(filename = "tempo_fila_118.png", plot = tempo_fila_1)
 ```
 
 ```{r duracao_atendimento}
@@ -185,9 +168,9 @@ duracao_atend <-
   ylab("Frequência Percentual") +
   xlab("Duração em minutos") +
   scale_y_continuous(labels = percent_format(), limits = c(0,0.1))
-ggsave(filename = "duracao_atend.png", plot = duracao_atend)
+ggsave(filename = "duracao_atend18.png", plot = duracao_atend)
 
-write.csv(sample(data[data$validServTime, "servDuration"], 5000), file="duracao_atend.csv")
+write.csv(data[data$validServTime, "servDuration"], file="duracao_atend18.csv")
 
 #Weibull (data without atend < 60)
 #test <- floor(rweibull(10000, 0.85283, scale=705.25) + 60)
