@@ -52,8 +52,7 @@ log <- function(event, clientNum, chamada){
                              cumB = areaB
                              ))
 }
--6.779715e-05
-areaB/(as.numeric(simClock-as.numeric(data[1, "arrivalTimestamp"]))*9)
+
 numServers <- 9
 servers <- 
   data.frame(
