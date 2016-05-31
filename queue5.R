@@ -74,7 +74,8 @@ for(simRound in 1:10){
   
   #state variables
   clientNum <- 1
-  simClock <- strptime(paste(Sys.Date(), "20:00:00"), "%Y-%m-%d %H:%M:%S")
+  startTime <- strptime(paste(Sys.Date(), "20:00:00"), "%Y-%m-%d %H:%M:%S") 
+  simClock <- startTime
   timeNextArrival <- getNextArrival()$time
   timeNextDeparture <- Inf # just to make shure the first event is an arrival
   numCustServed <- 0
@@ -110,7 +111,7 @@ for(simRound in 1:10){
       stringsAsFactors = F
     )
   
-  endTime <- simClock + 3600
+  endTime <- startTime + 3600
   log(round=simRound, event="start", clientNum = 0, chamada="")
   while(simClock <= endTime){
     if(timeNextArrival < as.POSIXct(timeNextDeparture, origin = "1970-01-01")){
@@ -164,5 +165,11 @@ write.csv2(logDF, file = "logSim20.csv", row.names = FALSE)
 
 library(ggplot2)
 ggplot(data=logDF, aes(x=time, y=queueSize, group=as.factor(round))) + 
-  geom_step(aes(colour=as.factor(round)), show.legend = F)
+  geom_step(aes(colour=as.factor(round)), show.legend = F) +
+  scale_x_datetime(limits=c(as.POSIXct(startTime), as.POSIXct(endTime)))
+
+ggplot(data=logDF, aes(x=time, y=busyServers, group=as.factor(round))) + 
+  geom_step(aes(colour=as.factor(round)), show.legend = F) +
+  scale_x_datetime(limits=c(as.POSIXct(startTime), as.POSIXct(endTime)))
+
 
