@@ -1,16 +1,27 @@
-#simulador para fila única e n servos
+#simulador para fila única e n servos com curvas características do horário entre 20 e 21h
 options(stringsAsFactors = FALSE)
 library(VGAM)
 
 ###### funçoes auxiliares
-getDepartTime <- function() {
-  simClock + as.numeric(round(rdagum(1, scale = 595.51, shape1.a = 2.2426, shape2.p = 0.41321)))
-}
+# chegadas 20h: lognormal
+# sigma = 1.544
+# mu = 2.969
+# location = 1.7486 
+# Percentual de atendimentos preferenciais: 0.0158932
 
 getNextArrival <- function() {
-  nextTime <- simClock + as.numeric(round(1.9462 + rgengamma.stacy(1, scale = 0.16301, d = 0.31255, k = 5.4788)))
-  nextType <- rbinom(1, 1, prob=0.012394)
+  nextTime <- simClock + as.numeric(round(1.7486 + rlnorm(1, meanlog = 2.969, sdlog=2.969)))
+  nextType <- rbinom(1, 1, prob=0.0158932)
   list(time=nextTime, type=nextType)
+}
+
+# duracao 20h: gamma
+# shape alpha = 0.63677
+# scale beta = 660.47
+# location = 3.0
+
+getDepartTime <- function() {
+  simClock + as.numeric(3 + round(rgamma(1, shape = 0.63677, scale = 660.47)))
 }
 
 update <- function(curTime, event){
@@ -63,7 +74,7 @@ for(simRound in 1:10){
   
   #state variables
   clientNum <- 1
-  simClock <- strptime(paste(Sys.Date(), "18:00:00"), "%Y-%m-%d %H:%M:%S")
+  simClock <- strptime(paste(Sys.Date(), "20:00:00"), "%Y-%m-%d %H:%M:%S")
   timeNextArrival <- getNextArrival()$time
   timeNextDeparture <- Inf # just to make shure the first event is an arrival
   numCustServed <- 0
@@ -149,7 +160,7 @@ for(simRound in 1:10){
   
 }
 
-write.csv2(logDF, file = "logSim18.csv", row.names = FALSE)
+write.csv2(logDF, file = "logSim20.csv", row.names = FALSE)
 
 library(ggplot2)
 ggplot(data=logDF, aes(x=time, y=queueSize, group=as.factor(round))) + 
