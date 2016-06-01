@@ -1,6 +1,6 @@
 #simulador para fila única e n servos
 options(stringsAsFactors = FALSE)
-
+options(max.print = 999999999)
 queue <- 
   data.frame(
     clientNum <- numeric(),
@@ -48,10 +48,11 @@ log <- function(event, clientNum, chamada){
                              busyServers=sum(servers$busy), 
                              queueSize=nrow(queue),
                              numDelayed = numDelayedCustomers,
+                             numServed = numCustServed,
+                             cumD = delaysTotal,
                              cumQ = areaQ, 
                              cumB = areaB
-                             ))
-}
+                             ))}
 
 numServers <- 9
 servers <- 
@@ -94,7 +95,6 @@ while(numCustServed < reqCustServed){
     arrivingClient <- clientNum
     chamada <- data[arrivingClient, "Chamada"]
     if(allServersBusy()){
-      numDelayedCustomers <- numDelayedCustomers + 1
       if(substr(chamada, 2, 2)=="P"){
         #customer goes to start of the queue
         queue <- rbind(data.frame(clientNum=arrivingClient, 
@@ -126,6 +126,7 @@ while(numCustServed < reqCustServed){
       delay <- simClock - as.numeric(queue[1, "arrivalTime"])
       delaysTotal <- delaysTotal + delay
       allocateServer(clientNum=queue[1, "clientNum"], chamada=queue[1, "chamada"])
+      numDelayedCustomers <- numDelayedCustomers + 1
       queue <- queue[-1,]
     }
     timeNextDeparture <- min(servers$depTime)
@@ -134,15 +135,44 @@ while(numCustServed < reqCustServed){
   }
 }
 
-logDF[which.max(logDF$queue), ]
+write.csv(logDF, file = "logRepNoite.csv", row.names = FALSE)
 
-#utilization
-areaB/((simClock-as.numeric(data[1, "arrivalTimestamp"]))*numServers)
-# >>> this is wrong as the servers are actually not available 24/7
+#library(ggplot2)
+#ggplot() + geom_step(data=logDF, mapping=aes(x=time, y=queueSize))
 
-write.csv(logDF, file = "log.csv", row.names = FALSE)
+library(plyr)
+temp18 <-
+  ddply(logDF[format(logDF$time, "%H")=="18",], 
+      .(date=format(time, "%y-%m-%d")), 
+      function(x) c(queueAtStart=x[which.min(x$time), "queueSize"], 
+                    serversAtStart=x[which.min(x$time), "busyServers"],
+                    deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
+                    deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
+                    avgD=(x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"])/(x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"]),
+                    deltaQ=x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"],
+                    avrQ=(x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"])/(60*60),
+                    deltaB=x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"],
+                    avgU=(x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"])/(60*60*numServers),
+                    minTime=min(x$time),
+                    maxTime=max(x$time)))
+temp18$minTime <- as.POSIXct(temp18$minTime, origin = "1970-01-01")
+temp18$maxTime <- as.POSIXct(temp18$maxTime, origin = "1970-01-01")
+format(colMeans(temp18[,2:10], na.rm = T), digits = 3, scientific = F)
 
-library(ggplot2)
-ggplot() + geom_step(data=logDF, mapping=aes(x=time, y=queueSize))
-
-
+temp20 <-
+  ddply(logDF[format(logDF$time, "%H")=="20",], 
+        .(date=format(time, "%y-%m-%d")), 
+        function(x) c(queueAtStart=x[which.min(x$time), "queueSize"], 
+                      serversAtStart=x[which.min(x$time), "busyServers"],
+                      deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
+                      deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
+                      avgD=(x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"])/(x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"]),
+                      deltaQ=x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"],
+                      avrQ=(x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"])/(60*60),
+                      deltaB=x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"],
+                      avgU=(x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"])/(60*60*numServers),
+                      minTime=min(x$time),
+                      maxTime=max(x$time)))
+temp20$minTime <- as.POSIXct(temp20$minTime, origin = "1970-01-01")
+temp20$maxTime <- as.POSIXct(temp20$maxTime, origin = "1970-01-01")
+format(colMeans(temp20[,2:10], na.rm = T), digits = 3, scientific = F)
