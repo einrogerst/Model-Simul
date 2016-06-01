@@ -135,44 +135,54 @@ while(numCustServed < reqCustServed){
   }
 }
 
-write.csv(logDF, file = "logRepNoite.csv", row.names = FALSE)
+write.csv2(logDF, file = "logRepNoite.csv", row.names = FALSE, eol = "\r")
 
 #library(ggplot2)
 #ggplot() + geom_step(data=logDF, mapping=aes(x=time, y=queueSize))
 
 library(plyr)
-temp18 <-
+summary18 <-
   ddply(logDF[format(logDF$time, "%H")=="18",], 
       .(date=format(time, "%y-%m-%d")), 
-      function(x) c(queueAtStart=x[which.min(x$time), "queueSize"], 
-                    serversAtStart=x[which.min(x$time), "busyServers"],
-                    deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
-                    deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
+      function(x) c(QsizeAtStart=x[which.min(x$time), "queueSize"], 
+                    busySrvAtStart=x[which.min(x$time), "busyServers"],
+                    #deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
+                    #deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
                     avgD=(x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"])/(x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"]),
-                    deltaQ=x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"],
-                    avrQ=(x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"])/(60*60),
-                    deltaB=x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"],
+                    #deltaQ=x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"],
+                    avgQ=(x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"])/(60*60),
+                    #deltaB=x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"],
                     avgU=(x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"])/(60*60*numServers),
                     minTime=min(x$time),
                     maxTime=max(x$time)))
-temp18$minTime <- as.POSIXct(temp18$minTime, origin = "1970-01-01")
-temp18$maxTime <- as.POSIXct(temp18$maxTime, origin = "1970-01-01")
-format(colMeans(temp18[,2:10], na.rm = T), digits = 3, scientific = F)
+summary18$minTime <- as.POSIXct(summary18$minTime, origin = "1970-01-01")
+summary18$maxTime <- as.POSIXct(summary18$maxTime, origin = "1970-01-01")
 
-temp20 <-
+write.csv2(summary18, file = "summaryRep18.csv", row.names = FALSE, eol = "\r")
+
+apply(summary18[,sapply(summary18, is.numeric)], 2, mean)
+apply(summary18[,sapply(summary18, is.numeric)], 2, sd)
+nrow(summary18)
+
+summary20 <-
   ddply(logDF[format(logDF$time, "%H")=="20",], 
         .(date=format(time, "%y-%m-%d")), 
-        function(x) c(queueAtStart=x[which.min(x$time), "queueSize"], 
-                      serversAtStart=x[which.min(x$time), "busyServers"],
-                      deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
-                      deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
+        function(x) c(QsizeAtStart=x[which.min(x$time), "queueSize"], 
+                      busySrvAtStart=x[which.min(x$time), "busyServers"],
+                      #deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
+                      #deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
                       avgD=(x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"])/(x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"]),
-                      deltaQ=x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"],
-                      avrQ=(x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"])/(60*60),
-                      deltaB=x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"],
+                      #deltaQ=x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"],
+                      avgQ=(x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"])/(60*60),
+                      #deltaB=x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"],
                       avgU=(x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"])/(60*60*numServers),
                       minTime=min(x$time),
                       maxTime=max(x$time)))
-temp20$minTime <- as.POSIXct(temp20$minTime, origin = "1970-01-01")
-temp20$maxTime <- as.POSIXct(temp20$maxTime, origin = "1970-01-01")
-format(colMeans(temp20[,2:10], na.rm = T), digits = 3, scientific = F)
+summary20$minTime <- as.POSIXct(summary20$minTime, origin = "1970-01-01")
+summary20$maxTime <- as.POSIXct(summary20$maxTime, origin = "1970-01-01")
+
+write.csv2(summary20, file = "summaryRep20.csv", row.names = FALSE, eol = "\r")
+
+apply(summary20[,sapply(summary20, is.numeric)], 2, mean)
+apply(summary20[,sapply(summary20, is.numeric)], 2, sd)
+nrow(summary20)
