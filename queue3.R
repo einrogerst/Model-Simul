@@ -135,11 +135,7 @@ while(numCustServed < reqCustServed){
   }
 }
 
-<<<<<<< HEAD
 write.csv2(logDF, file = "logRepNoite.csv", row.names = FALSE, eol = "\r")
-=======
-write.csv2(logDF, file = "logRepNoite.csv", row.names = FALSE)
->>>>>>> 7188f295f39bffcec98c57ddcac0d576df024f36
 
 #library(ggplot2)
 #ggplot() + geom_step(data=logDF, mapping=aes(x=time, y=queueSize))
@@ -162,11 +158,7 @@ summary18 <-
 summary18$minTime <- as.POSIXct(summary18$minTime, origin = "1970-01-01")
 summary18$maxTime <- as.POSIXct(summary18$maxTime, origin = "1970-01-01")
 
-<<<<<<< HEAD
 write.csv2(summary18, file = "summaryRep18.csv", row.names = FALSE, eol = "\r")
-=======
-write.csv2(summary18, file = "summaryRep18.csv", row.names = FALSE)
->>>>>>> 7188f295f39bffcec98c57ddcac0d576df024f36
 
 apply(summary18[,sapply(summary18, is.numeric)], 2, mean)
 apply(summary18[,sapply(summary18, is.numeric)], 2, sd)
@@ -189,11 +181,7 @@ summary20 <-
 summary20$minTime <- as.POSIXct(summary20$minTime, origin = "1970-01-01")
 summary20$maxTime <- as.POSIXct(summary20$maxTime, origin = "1970-01-01")
 
-<<<<<<< HEAD
 write.csv2(summary20, file = "summaryRep20.csv", row.names = FALSE, eol = "\r")
-=======
-write.csv2(summary20, file = "summaryRep20.csv", row.names = FALSE)
->>>>>>> 7188f295f39bffcec98c57ddcac0d576df024f36
 
 apply(summary20[,sapply(summary20, is.numeric)], 2, mean)
 apply(summary20[,sapply(summary20, is.numeric)], 2, sd)
