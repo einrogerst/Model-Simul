@@ -136,7 +136,7 @@ while(numCustServed < reqCustServed){
 }
 
 write.csv2(logDF, file = "logRepNoite.csv", row.names = FALSE)
-logDF <- read.csv2(file = "logRepNoite.csv")
+#logDF <- read.csv2(file = "logRepNoite.csv")
 
 #library(ggplot2)
 #ggplot() + geom_step(data=logDF, mapping=aes(x=time, y=queueSize))
@@ -159,9 +159,9 @@ summary18 <-
 summary18$minTime <- as.POSIXct(summary18$minTime, origin = "1970-01-01")
 summary18$maxTime <- as.POSIXct(summary18$maxTime, origin = "1970-01-01")
 
-write.table(summary18, file = "summaryRep18.csv", sep = ";", dec = ".", row.names = FALSE, eol = "\r")
+write.table(summary18, file = "summaryRep18.csv", sep = ",", dec = ".", row.names = FALSE, eol = "\r")
 #summary18 <- read.csv2(file = "summaryRep18.csv", stringsAsFactors = F)
-summary18[,4:6] <- apply(summary18[,4:6], 2, as.numeric)
+#summary18[,4:6] <- apply(summary18[,4:6], 2, as.numeric)
 
 apply(summary18[,sapply(summary18, is.numeric)], 2, mean)
 apply(summary18[,sapply(summary18, is.numeric)], 2, sd)
@@ -196,7 +196,7 @@ summary20 <-
 summary20$minTime <- as.POSIXct(summary20$minTime, origin = "1970-01-01")
 summary20$maxTime <- as.POSIXct(summary20$maxTime, origin = "1970-01-01")
 
-write.table(summary20, file = "summaryRep20.csv", sep = ";", dec = ".", row.names = FALSE, eol = "\r")
+write.table(summary20, file = "summaryRep20.csv", sep = ",", dec = ".", row.names = FALSE, eol = "\r")
 
 summary20 <- read.csv2(file = "summaryRep20.csv", stringsAsFactors = F)
 summary20[,4:6] <- apply(summary20[,4:6], 2, as.numeric)
