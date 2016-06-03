@@ -1,6 +1,6 @@
-#simulador para fila única e n servos
+#reproduz sistema de fila com n servos baseado em dados coletados
 options(stringsAsFactors = FALSE)
-options(max.print = 999999999)
+
 queue <- 
   data.frame(
     clientNum <- numeric(),
@@ -135,7 +135,8 @@ while(numCustServed < reqCustServed){
   }
 }
 
-write.csv2(logDF, file = "logRepNoite.csv", row.names = FALSE, eol = "\n")
+write.csv2(logDF, file = "logRepNoite.csv", row.names = FALSE)
+logDF <- read.csv2(file = "logRepNoite.csv")
 
 #library(ggplot2)
 #ggplot() + geom_step(data=logDF, mapping=aes(x=time, y=queueSize))
@@ -147,7 +148,7 @@ summary18 <-
       function(x) c(QsizeAtStart=x[which.min(x$time), "queueSize"], 
                     busySrvAtStart=x[which.min(x$time), "busyServers"],
                     #deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
-                    #deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
+                    deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
                     avgD=(x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"])/(x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"]),
                     #deltaQ=x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"],
                     avgQ=(x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"])/(60*60),
@@ -158,11 +159,25 @@ summary18 <-
 summary18$minTime <- as.POSIXct(summary18$minTime, origin = "1970-01-01")
 summary18$maxTime <- as.POSIXct(summary18$maxTime, origin = "1970-01-01")
 
-write.csv2(summary18, file = "summaryRep18.csv", row.names = FALSE, eol = "\n")
+write.table(summary18, file = "summaryRep18.csv", sep = ";", dec = ".", row.names = FALSE, eol = "\r")
+#summary18 <- read.csv2(file = "summaryRep18.csv", stringsAsFactors = F)
+summary18[,4:6] <- apply(summary18[,4:6], 2, as.numeric)
 
 apply(summary18[,sapply(summary18, is.numeric)], 2, mean)
 apply(summary18[,sapply(summary18, is.numeric)], 2, sd)
 nrow(summary18)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+summary18noOutliers <- summary18
+summary18noOutliers[,4:6] <- apply(summary18[,4:6], 2, remove_outliers)
 
 summary20 <-
   ddply(logDF[format(logDF$time, "%H")=="20",], 
@@ -170,7 +185,7 @@ summary20 <-
         function(x) c(QsizeAtStart=x[which.min(x$time), "queueSize"], 
                       busySrvAtStart=x[which.min(x$time), "busyServers"],
                       #deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
-                      #deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
+                      deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
                       avgD=(x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"])/(x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"]),
                       #deltaQ=x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"],
                       avgQ=(x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"])/(60*60),
@@ -181,8 +196,24 @@ summary20 <-
 summary20$minTime <- as.POSIXct(summary20$minTime, origin = "1970-01-01")
 summary20$maxTime <- as.POSIXct(summary20$maxTime, origin = "1970-01-01")
 
-write.csv2(summary20, file = "summaryRep20.csv", row.names = FALSE, eol = "\n")
+write.table(summary20, file = "summaryRep20.csv", sep = ";", dec = ".", row.names = FALSE, eol = "\r")
 
+summary20 <- read.csv2(file = "summaryRep20.csv", stringsAsFactors = F)
+summary20[,4:6] <- apply(summary20[,4:6], 2, as.numeric)
+summary20[,1:6]
 apply(summary20[,sapply(summary20, is.numeric)], 2, mean)
 apply(summary20[,sapply(summary20, is.numeric)], 2, sd)
 nrow(summary20)
+
+summary20[,4:6] <- apply(summary20[,4:6], 2, remove_outliers)
+
+summary20noOutliers <- summary20
+summary20noOutliers[,4:6] <- apply(summary20[,4:6], 2, remove_outliers)
+
+library(reshape2)
+allData <- melt(rbind(cbind(time="18", summary18noOutliers[,4:6]), cbind(time="20", summary20noOutliers[,4:6])))
+
+library(ggplot2)
+ggplot(aes(y=value, x=time), data=allData) +
+  geom_boxplot() +
+  facet_wrap(~variable, scales="free")
