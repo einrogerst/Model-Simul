@@ -82,7 +82,6 @@ ggsave(filename = "chegadas118.png", plot = chegadas1)
 
 write.csv(data[,"timediff"], file="chegadasFiltro18.csv")
 write.csv(data[format(data$arrivalTimestamp, "%y-%m-%d") %in% highDays,"timediff"], file="chegadasFiltro18high.csv")
-data[format(data$arrivalTimestamp, "%y-%m-%d") %in% highDays,"timediff"]
 
 chegadas2 <- ggplot(data, aes(timediff)) +
   geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 
@@ -178,6 +177,7 @@ duracao_atend <-
 ggsave(filename = "duracao_atend18.png", plot = duracao_atend)
 
 write.csv(data[data$validServTime, "servDuration"], file="duracao_atend18.csv")
+write.csv(data[data$validServTime & (format(data$arrivalTimestamp, "%y-%m-%d") %in% highDays),"servDuration"], file="duracao_atend18high.csv")
 
 #Weibull (data without atend < 60)
 #test <- floor(rweibull(10000, 0.85283, scale=705.25) + 60)

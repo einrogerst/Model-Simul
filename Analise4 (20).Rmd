@@ -177,6 +177,7 @@ duracao_atend <-
 ggsave(filename = "duracao_atend20.png", plot = duracao_atend)
 
 write.csv(data[data$validServTime, "servDuration"], file="duracao_atend20.csv")
+write.csv(data[data$validServTime & (format(data$arrivalTimestamp, "%y-%m-%d") %in% highDays),"servDuration"], file="duracao_atend20high.csv")
 
 #Weibull (data without atend < 60)
 #test <- floor(rweibull(10000, 0.85283, scale=705.25) + 60)
