@@ -16,6 +16,9 @@ require(scales)
 ```{r ETL}
 #le dados de entrada
 data <- read.csv("data.csv", stringsAsFactors = F, sep = ";")
+
+#dias com ocupação acima de 90% durante os dois intervalos estudados
+highDays <- c("16-02-18", "16-02-19", "16-02-22", "16-02-23", "16-02-24", "16-02-25", "16-03-08", "16-03-09", "16-03-10" ,"16-03-14")
 #data <- head(data, 10)
 #nrow(data)
 
@@ -78,6 +81,8 @@ chegadas1 <-
 ggsave(filename = "chegadas120.png", plot = chegadas1)
 
 write.csv(data[,"timediff"], file="chegadasFiltro20.csv")
+write.csv(data[format(data$arrivalTimestamp, "%y-%m-%d") %in% highDays,"timediff"], file="chegadasFiltro20high.csv")
+
 chegadas2 <- ggplot(data, aes(timediff)) +
   geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 
   #geom_freqpoly(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 

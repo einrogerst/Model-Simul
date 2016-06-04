@@ -174,13 +174,14 @@ for(simRound in 1:numRounds){
 
 write.csv2(logDF, file = "logSim-18-9.csv", row.names = FALSE)
 
+library(plyr)
 simSummary <-
   ddply(logDF, 
         .(round), 
         function(x) c(QsizeAtStart=x[which.min(x$time), "queueSize"], 
                       busySrvAtStart=x[which.min(x$time), "busyServers"],
                       #deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
-                      #deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
+                      deltaServed=x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"],
                       avgD=(x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"])/(x[which.max(x$time), "numServed"] - x[which.min(x$time), "numServed"]),
                       #deltaQ=x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"],
                       avgQ=(x[which.max(x$time), "cumQ"] - x[which.min(x$time), "cumQ"])/(simTime),
@@ -190,8 +191,10 @@ simSummary <-
 
 write.csv2(logDF, file = "simSummary-18-9.csv", row.names = FALSE)
 
-apply(simSummary[,4:6], 2, mean)
-apply(simSummary[,4:6], 2, sd)
+hist(simSummary[simSummary$avgU>0.9,"deltaServed"])
+apply(simSummary[simSummary$avgU>0.9,sapply(simSummary, is.numeric)], 2, mean)
+apply(simSummary[simSummary$avgU>0.9,sapply(simSummary, is.numeric)], 2, sd)
+nrow(simSummary[simSummary$avgU>0.9,])
 
 Sys.time()
 # 

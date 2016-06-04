@@ -162,9 +162,16 @@ summary18$maxTime <- as.POSIXct(summary18$maxTime, origin = "1970-01-01")
 write.table(summary18, file = "summaryRep18.csv", sep = ",", dec = ".", row.names = FALSE, eol = "\r")
 #summary18 <- read.csv2(file = "summaryRep18.csv", stringsAsFactors = F)
 #summary18[,4:6] <- apply(summary18[,4:6], 2, as.numeric)
+hist(summary18$deltaServed)
 
 apply(summary18[,sapply(summary18, is.numeric)], 2, mean)
 apply(summary18[,sapply(summary18, is.numeric)], 2, sd)
+
+apply(summary18[summary18$avgU>0.9,sapply(summary18, is.numeric)], 2, mean)
+apply(summary18[summary18$avgU>0.9,sapply(summary18, is.numeric)], 2, sd)
+summary18[summary18$avgU>0.9,"date"]
+
+hist(summary18[summary18$avgU>0.9,"deltaServed"])
 nrow(summary18)
 
 remove_outliers <- function(x, na.rm = TRUE, ...) {
@@ -217,3 +224,6 @@ library(ggplot2)
 ggplot(aes(y=value, x=time), data=allData) +
   geom_boxplot() +
   facet_wrap(~variable, scales="free")
+
+
+highDays <- intersect(summary18[summary18$avgU>0.9,"date"], summary20[summary20$avgU>0.9,"date"])
