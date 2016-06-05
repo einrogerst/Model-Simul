@@ -13,7 +13,7 @@ simTime <- 3600
 
 getDepartTime <- function(ini = F) {
   #  interval <- as.numeric(round(rdagum(1, scale = 595.51, shape1.a = 2.2426, shape2.p = 0.41321)))
-  interval <- as.numeric(round(204.59 + rgev(1, shape = 0.30406, scale = 197.46)))
+  interval <- as.numeric(round(300 + rgev(1, shape = 0.30406, scale = 197.46)))
   if(ini)
     depTime <- simClock + (interval/2)
   else
@@ -23,7 +23,7 @@ getDepartTime <- function(ini = F) {
 
 getArrival <- function(ini = F) {
   #  interval <- as.numeric(round(1.9462 + rgengamma.stacy(1, scale = 0.16301, d = 0.31255, k = 5.4788)))
-  interval <- as.numeric(round(rbisa(1, shape = 1.4283, scale = 24.041)))
+  interval <- as.numeric(1.0564 + round(rbisa(1, shape = 1.4283, scale = 24.041)))
   if(ini)
     arrivalTime <- simClock - (interval/2)
   else
@@ -80,10 +80,10 @@ log <- function(ttServers, round, event, clientNum, chamada){
 
 ######################## SIMULACAO
 
-for(ttServers in 6:12){
+for(ttServers in 7:7){
   
-  numInitBusyServers <- 6 + (ttServers - 6)
-  numInitFreeServers <- if(numInitBusyServers < 9) 9 - numInitBusyServers else 0
+  numInitBusyServers <- 7
+  numInitFreeServers <- if(ttServers - numInitBusyServers < 0) 0 else ttServers - numInitBusyServers
   initQueueSize <- 0
   
   for(simRound in 1:numRounds){
@@ -178,12 +178,14 @@ for(ttServers in 6:12){
   }
 }
 
-write.csv2(logDF, file = "logSim18.csv", row.names = FALSE)
+write.csv2(logDF, file = "logSim18beta.csv", row.names = FALSE)
+
+########### SUMARIZACAO
 
 library(plyr)
 simSummary <-
   ddply(logDF, 
-        .(ttServers, round), 
+        .(servers, round), 
         function(x) c(QsizeAtStart=x[which.min(x$time), "queueSize"], 
                       busySrvAtStart=x[which.min(x$time), "busyServers"],
                       #deltaD=x[which.max(x$time), "cumD"] - x[which.min(x$time), "cumD"],
@@ -195,27 +197,25 @@ simSummary <-
                       avgU=(x[which.max(x$time), "cumB"] - x[which.min(x$time), "cumB"])/(simTime*(numInitFreeServers+numInitBusyServers))
                       ))
 
-write.csv2(logDF, file = "simSummary-18-9.csv", row.names = FALSE)
-
+write.csv2(simSummary, file = "simSummary18beta.csv", row.names = FALSE)
 
 Sys.time()
 
-temp <- 
-  apply(simSummary[,-1], 2, mean)
-temp <- rbind(temp, 
-  apply(simSummary[,-1], 2, sd))
+simSummaryResult <-
+  ddply(simSummary, .(servers), summarize, 
+        mn.custServ=mean(deltaServed), 
+        sd.custServ=sd(deltaServed),
+        mn.avgD=mean(avgD),
+        sd.avgD=sd(avgD),
+        mn.avgQ=mean(avgQ),
+        sd.avgQ=sd(avgQ),
+        mn.avgU=mean(avgU),
+        sd.avgU=sd(avgU))
+
+write.csv2(simSummaryResult, file = "simSummaryResult18beta.csv", row.names = FALSE)
 
 
 
-temp <- rbind(temp, 
-  apply(summary18[summary18$date %in% highDays, sapply(summary18, is.numeric)], 2, mean))
-temp <- rbind(temp, 
-  apply(summary18[summary18$date %in% highDays, sapply(summary18, is.numeric)], 2, sd))
-temp <- rbind(temp, 
-  sapply(names(simSummary[,-1]), FUN = function(x) t.test(simSummary[, x], 
-                         summary18[summary18$date %in% highDays, x])[["p.value"]]))
-
-hist(summary18[summary18$date %in% highDays, "deltaServed"],)
 # library(ggplot2)
 # ggplot(data=logDF, aes(x=time, y=queueSize, group=as.factor(round))) + 
 #   geom_step(aes(colour=as.factor(round)), show.legend = F) +
