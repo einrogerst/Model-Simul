@@ -160,31 +160,6 @@ summary18$minTime <- as.POSIXct(summary18$minTime, origin = "1970-01-01")
 summary18$maxTime <- as.POSIXct(summary18$maxTime, origin = "1970-01-01")
 
 write.table(summary18, file = "summaryRep18.csv", sep = ",", dec = ".", row.names = FALSE, eol = "\r")
-#summary18 <- read.csv2(file = "summaryRep18.csv", stringsAsFactors = F)
-#summary18[,4:6] <- apply(summary18[,4:6], 2, as.numeric)
-hist(summary18$deltaServed)
-
-apply(summary18[,sapply(summary18, is.numeric)], 2, mean)
-apply(summary18[,sapply(summary18, is.numeric)], 2, sd)
-
-apply(summary18[summary18$avgU>0.9,sapply(summary18, is.numeric)], 2, mean)
-apply(summary18[summary18$avgU>0.9,sapply(summary18, is.numeric)], 2, sd)
-summary18[summary18$avgU>0.9,"date"]
-
-hist(summary18[summary18$avgU>0.9,"deltaServed"])
-nrow(summary18)
-
-remove_outliers <- function(x, na.rm = TRUE, ...) {
-  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
-  H <- 1.5 * IQR(x, na.rm = na.rm)
-  y <- x
-  y[x < (qnt[1] - H)] <- NA
-  y[x > (qnt[2] + H)] <- NA
-  y
-}
-
-summary18noOutliers <- summary18
-summary18noOutliers[,4:6] <- apply(summary18[,4:6], 2, remove_outliers)
 
 summary20 <-
   ddply(logDF[format(logDF$time, "%H")=="20",], 
@@ -205,25 +180,20 @@ summary20$maxTime <- as.POSIXct(summary20$maxTime, origin = "1970-01-01")
 
 write.table(summary20, file = "summaryRep20.csv", sep = ",", dec = ".", row.names = FALSE, eol = "\r")
 
-summary20 <- read.csv2(file = "summaryRep20.csv", stringsAsFactors = F)
-summary20[,4:6] <- apply(summary20[,4:6], 2, as.numeric)
-summary20[,1:6]
-apply(summary20[,sapply(summary20, is.numeric)], 2, mean)
-apply(summary20[,sapply(summary20, is.numeric)], 2, sd)
-nrow(summary20)
-
-summary20[,4:6] <- apply(summary20[,4:6], 2, remove_outliers)
-
-summary20noOutliers <- summary20
-summary20noOutliers[,4:6] <- apply(summary20[,4:6], 2, remove_outliers)
-
-library(reshape2)
-allData <- melt(rbind(cbind(time="18", summary18noOutliers[,4:6]), cbind(time="20", summary20noOutliers[,4:6])))
-
-library(ggplot2)
-ggplot(aes(y=value, x=time), data=allData) +
-  geom_boxplot() +
-  facet_wrap(~variable, scales="free")
-
-
 highDays <- intersect(summary18[summary18$avgU>0.9,"date"], summary20[summary20$avgU>0.9,"date"])
+
+#summary18 <- read.csv2(file = "summaryRep18.csv", stringsAsFactors = F)
+#summary18[,4:6] <- apply(summary18[,4:6], 2, as.numeric)
+
+apply(summary18[summary18$date %in% highDays, sapply(summary18, is.numeric)], 2, mean)
+apply(summary18[summary18$date %in% highDays, sapply(summary18, is.numeric)], 2, sd)
+ hist(summary18[summary18$date %in% highDays, "deltaServed"])
+
+apply(summary20[summary20$date %in% highDays, sapply(summary20, is.numeric)], 2, mean)
+apply(summary20[summary20$date %in% highDays, sapply(summary20, is.numeric)], 2, sd)
+ hist(summary20[summary20$date %in% highDays, "deltaServed"])
+
+
+
+
+
