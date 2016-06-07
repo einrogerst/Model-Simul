@@ -82,6 +82,7 @@ ggsave(filename = "chegadas118.png", plot = chegadas1)
 
 write.csv(data[,"timediff"], file="chegadasFiltro18.csv")
 write.csv(data[format(data$arrivalTimestamp, "%y-%m-%d") %in% highDays,"timediff"], file="chegadasFiltro18high.csv")
+length(data[format(data$arrivalTimestamp, "%y-%m-%d") %in% highDays,"timediff"])
 
 chegadas2 <- ggplot(data, aes(timediff)) +
   geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 30) + 

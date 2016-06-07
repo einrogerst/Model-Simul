@@ -6,14 +6,13 @@
 options(stringsAsFactors = FALSE)
 library(VGAM)
 
-Sys.time()
 ###### funçoes auxiliares
 numRounds <- 100
 simTime <- 3600
 
 getDepartTime <- function(ini = F) {
-  #  interval <- as.numeric(round(rdagum(1, scale = 595.51, shape1.a = 2.2426, shape2.p = 0.41321)))
-  interval <- as.numeric(round(300 + rgev(1, shape = 0.30406, scale = 197.46)))
+  interval <- as.numeric(round(300 + rgev(1, shape = 0.30406, scale = 197.46))) #18h
+  #interval <- round(3 + rgamma(1, shape = 0.60837, scale = 96.25))  #20h
   if(ini)
     depTime <- simClock + (interval/2)
   else
@@ -22,8 +21,8 @@ getDepartTime <- function(ini = F) {
 }
 
 getArrival <- function(ini = F) {
-  #  interval <- as.numeric(round(1.9462 + rgengamma.stacy(1, scale = 0.16301, d = 0.31255, k = 5.4788)))
-  interval <- as.numeric(1.0564 + round(rbisa(1, shape = 1.4283, scale = 24.041)))
+  interval <- as.numeric(1.0564 + round(rbisa(1, shape = 1.4283, scale = 24.041))) #18h
+  #interval <- round(0.68293 + rinv.gaussian(1, mu = 39.837, lambda = 11.526)) #20h
   if(ini)
     arrivalTime <- simClock - (interval/2)
   else
@@ -80,7 +79,7 @@ log <- function(ttServers, round, event, clientNum, chamada){
 
 ######################## SIMULACAO
 
-for(ttServers in 7:7){
+for(ttServers in 7:15){
   
   numInitBusyServers <- 7
   numInitFreeServers <- if(ttServers - numInitBusyServers < 0) 0 else ttServers - numInitBusyServers
@@ -199,8 +198,6 @@ simSummary <-
 
 write.csv2(simSummary, file = "simSummary18beta.csv", row.names = FALSE)
 
-Sys.time()
-
 simSummaryResult <-
   ddply(simSummary, .(servers), summarize, 
         mn.custServ=mean(deltaServed), 
@@ -214,8 +211,6 @@ simSummaryResult <-
 
 write.csv2(simSummaryResult, file = "simSummaryResult18beta.csv", row.names = FALSE)
 
-
-
 # library(ggplot2)
 # ggplot(data=logDF, aes(x=time, y=queueSize, group=as.factor(round))) + 
 #   geom_step(aes(colour=as.factor(round)), show.legend = F) +
@@ -224,3 +219,5 @@ write.csv2(simSummaryResult, file = "simSummaryResult18beta.csv", row.names = FA
 # ggplot(data=logDF, aes(x=time, y=busyServers, group=as.factor(round))) + 
 #   geom_step(aes(colour=as.factor(round)), show.legend = F) +
 #   scale_x_datetime(limits=c(as.POSIXct(startTime), as.POSIXct(endTime)))
+
+
